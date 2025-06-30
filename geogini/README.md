@@ -1,0 +1,2 @@
+# GeoGini
+Frontend and Backend
