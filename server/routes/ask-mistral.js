@@ -1,60 +1,93 @@
-// routes/ask-mistral.js
 import express from "express";
+import multer from "multer";
 import dotenv from "dotenv";
+import { v2 as cloudinary } from "cloudinary";
 import { InferenceClient } from "@huggingface/inference";
+import streamifier from "streamifier";
+
 dotenv.config();
 const router = express.Router();
 const client = new InferenceClient(process.env.HF_TOKEN);
 
-router.post("/", async (req, res) => {
-  try {
-    const { prompt, metrics } = req.body;
+// 🔧 Cloudinary Config
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-    const context = `
-You are an expert on geography and environmental science helping your buddy. Answer the student's question,
+// 🖼️ Multer - Store images in memory
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+router.post("/", upload.single("image"), async (req, res) => {
+  try {
+    const prompt = req.body.prompt || "";
+    const metrics = JSON.parse(req.body.metrics || "{}");
+
+    // 🧠 Build prompt content
+    const baseContext = `
+You are a geography expert helping your friend analyze a specific region based on scientific metrics and/or an image. Use only the data provided and the user’s question to generate a factual, educational response. Do not speculate or make assumptions beyond the data or image.
 
 --- Region Data ---
 Latitude: ${metrics.lat}
 Longitude: ${metrics.lon}
 NDVI (Vegetation Index): ${metrics.ndvi}
-LST (Land Surface Temp): ${metrics.lst}°C
-Rainfall (annual): ${metrics.rainfall} mm
-Water Frequency: ${metrics.waterFreq}%
+Land Surface Temperature (LST): ${metrics.lst} °C
+Rainfall (Annual): ${metrics.rainfall} mm
+Water Frequency: ${metrics.waterFreq} %
 Population Density: ${metrics.popDensity} people/km²
 
---- Student's Question ---
+--- User Question ---
 "${prompt}"
 
---- Guidelines for Response ---
-1. You're the student's buddy, so answer like one.
-2. Figure out the name of the region based on the metrics.
-3. Answer the question in a one liner before explaining it and breaking it down.
-4. Provide a detailed explanation with clarity, based specifically on what student asks.
-5. Use the metrics to aid your answer.
-6. Ask 1 or 2 follow-up questions to engage the student in deeper thinking.
-7. Suggest relevant learning links or resources
+--- Instructions ---
+1. If an image is provided, integrate it to support the explanation — describe visual features that correlate with the metrics.
+2. Use the above region data to explain patterns, landforms, or environmental conditions relevant to the user's question.
+3.  Be specific, concise, and avoid guessing. Say "Data not available" where information is missing or unclear.
+4. When possible, include relevant scientific concepts (e.g., aridity, vegetation health, human impact).
+5. Never fabricate facts or names of places if not explicitly mentioned.
 
-
-Respond in a friendly, intelligent tone like a passionate professor.
+Begin your response below:
 `;
 
+    const content = [{ type: "text", text: baseContext }];
+
+    // 📷 Upload image if present
+    if (req.file) {
+      const streamUpload = () =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { resource_type: "image" },
+            (error, result) => {
+              if (error) return reject(error);
+              resolve(result);
+            }
+          );
+          streamifier.createReadStream(req.file.buffer).pipe(stream);
+        });
+
+      const result = await streamUpload();
+
+      content.push({
+        type: "image_url",
+        image_url: { url: result.secure_url },
+      });
+    }
+
+    // 🤖 Send prompt (with or without image) to Hugging Face
     const chatCompletion = await client.chatCompletion({
       provider: "nebius",
       model: "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
-      messages: [
-        {
-          role: "user",
-          content: [{ type: "text", text: context }],
-        },
-      ],
+      messages: [{ role: "user", content }],
     });
 
-    const answer = chatCompletion.choices[0].message.content;
-
-    res.status(200).json({ answer });
-  } catch (error) {
-    console.error("AI Error:", error.message);
-    res.status(500).json({ error: error.message });
+    return res.json({
+      answer: chatCompletion.choices[0].message.content,
+    });
+  } catch (err) {
+    console.error("ask-mistral error:", err);
+    return res.status(500).json({ error: "Something went wrong" });
   }
 });
 

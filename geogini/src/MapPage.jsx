@@ -1,3 +1,5 @@
+// --- MODIFIED GEO-GINI MAP PAGE WITH IMAGE UPLOAD ---
+
 "use client";
 
 import { BackgroundBeams } from "@/components/ui/background-beams";
@@ -10,6 +12,7 @@ import { MagicButton } from "@/components/ui/MagicButton";
 import { RainbowButton } from "@/components/magicui/rainbow-button";
 import { BorderBeam } from "@/components/magicui/border-beam";
 import { ShimmerButton } from "@/components/magicui/shimmer-button";
+import ReactMarkdown from "react-markdown";
 
 import {
   Modal,
@@ -19,21 +22,34 @@ import {
   ModalTrigger,
 } from "@/components/ui/animated-modal";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+
+function formatAIResponse(raw) {
+  if (!raw) return "";
+
+  // Convert lines that look like headers into real markdown headers
+  const withMarkdownHeaders = raw.replace(
+    /^(?=(?:[A-Z][^:\n]{1,80}:))(.+?):/gm,
+    (_, heading) => `### ${heading.trim()}:\n`
+  );
+
+  return withMarkdownHeaders;
+}
 
 export default function MapPage() {
-  // State to hold metrics and chat prompt
   const [metrics, setMetrics] = useState(null);
   const [chatPrompt, setChatPrompt] = useState("");
   const [aiResponse, setAiResponse] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const handleMessage = (event) => {
       const data = event.data;
       if (data?.status === "loading") {
         console.log("🕐 Region selected, metrics loading...");
-        setLoading(true); // Show spinner now
+        setLoading(true);
         return;
       }
       console.log("🎯 Message received:", event.data);
@@ -42,14 +58,23 @@ export default function MapPage() {
         console.log("✅ Valid metrics received!");
         setMetrics(event.data);
         setLoading(false);
-
-        const summary = `Region selected:\nLatitude: ${event.data.lat}\nLongitude: ${event.data.lon}\nNDVI: ${event.data.ndvi}\nLST: ${event.data.lst}°C\nRainfall: ${event.data.rainfall} mm\nWater Freq: ${event.data.waterFreq}%\nPopulation Density: ${event.data.popDensity}`;
       }
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, []);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+    }
+  };
 
   return (
     <div className="relative min-h-screen w-full bg-neutral-950 overflow-x-hidden">
@@ -79,12 +104,19 @@ export default function MapPage() {
           {/* 🪄 Instructions Modal Trigger */}
           <div className="relative z-20 mt-6">
             <Modal>
-              <ModalTrigger>
-                <ShimmerButton className="shadow-1xl">
-                  <span className="whitespace-pre-wrap text-center text-sm font-medium leading-none tracking-tight text-white dark:from-white dark:to-slate-900/10 lg:text-md">
-                    Click to know Instructions
-                  </span>
-                </ShimmerButton>
+              <ModalTrigger
+                renderAs="div"
+                className="group relative inline-flex items-center justify-center overflow-hidden rounded-md px-6 py-2 text-sm font-semibold text-black dark:text-white bg-white dark:bg-black border border-neutral-300 dark:border-neutral-700 transition-transform duration-300 ease-out hover:scale-105 active:scale-95 "
+              >
+                <span className="relative z-10 whitespace-pre-wrap text-center text-sm font-medium leading-none tracking-tight text-black dark:text-white">
+                  Click to know Instructions
+                </span>
+
+                {/* Shimmer background on hover */}
+                <span className="absolute inset-0 z-0 bg-gradient-to-br from-white/10 via-black/10 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+                {/* Hover ring glow */}
+                <span className="absolute inset-0 rounded-md ring-1 ring-white/10 group-hover:ring-2 group-hover:ring-neutral-400 dark:group-hover:ring-white/40 transition duration-300 pointer-events-none" />
               </ModalTrigger>
 
               <ModalBody>
@@ -123,6 +155,10 @@ export default function MapPage() {
                     <li>
                       🗺️ You can also toggle individual layers under the
                       "Layers" menu on the map to visualize metrics directly.
+                    </li>
+                    <li>
+                      🤖 You can also upload images and ask ai directly, or with
+                      the selection in the map.
                     </li>
                   </ul>
 
@@ -183,14 +219,13 @@ export default function MapPage() {
 
             {/* 🌍 Map */}
             <iframe
-              src="https://fiery-muse-461019-g5.projects.earthengine.app/view/gee-app"
+              src="https://antariksh.users.earthengine.app/view/geogini-gee-latest"
               className="w-full h-[400px] sm:h-[450px] md:h-[500px] lg:h-[580px] border-none rounded-2xl"
               title="GEE Map"
               allowFullScreen
             />
           </div>
         </div>
-
         {/* 💬 Chat Box */}
         <div className="relative w-full max-w-3xl rounded-2xl">
           <ShineBorder
@@ -208,26 +243,62 @@ export default function MapPage() {
             ) : (
               <textarea
                 className="w-full h-28 p-4 rounded-lg bg-black text-white resize-none border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                placeholder="Ask about this region..."
+                placeholder="Always mention the region name in your prompt..."
                 value={chatPrompt}
                 onChange={(e) => setChatPrompt(e.target.value)}
               />
             )}
 
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <p className="text-sm text-neutral-400 mt-2">
+              {imageFile ? `📎 Attached: ${imageFile.name}` : ""}
+            </p>
+
             <div className="w-full flex flex-col sm:flex-row items-center gap-4">
               <RainbowButton
-                className="w-full sm:w-auto sm:min-w-[140px] text-center"
+                className="w-full sm:w-auto sm:min-w-[120px] text-center rounded-4xl"
+                onClick={handleUploadClick}
+              >
+                Upload Image
+              </RainbowButton>
+
+              <RainbowButton
+                className="w-full sm:w-auto sm:min-w-[120px] text-center rounded-4xl"
                 onClick={async () => {
-                  const res = await fetch(
-                    "http://localhost:3001/api/ask-mistral",
-                    {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ prompt: chatPrompt, metrics }),
-                    }
-                  );
-                  const data = await res.json();
-                  setAiResponse(data.answer); // Display response below
+                  const formData = new FormData();
+                  formData.append("prompt", chatPrompt);
+
+                  if (imageFile) {
+                    formData.append("image", imageFile);
+                  }
+
+                  if (metrics) {
+                    formData.append("metrics", JSON.stringify(metrics));
+                  }
+
+                  try {
+                    const res = await fetch(
+                      "http://localhost:3001/api/ask-mistral",
+                      {
+                        method: "POST",
+                        body: formData,
+                      }
+                    );
+
+                    const data = await res.json();
+                    setAiResponse(data.answer);
+                  } catch (err) {
+                    console.error("❌ Failed to fetch AI response:", err);
+                    setAiResponse(
+                      "⚠️ Something went wrong while contacting the AI server."
+                    );
+                  }
                 }}
               >
                 Ask AI
@@ -235,14 +306,12 @@ export default function MapPage() {
 
               <div className="w-full sm:w-auto sm:min-w-[180px]">
                 <Modal>
-                  {/* 🪄 Load Temporal Data with MagicButton */}
                   <ModalTrigger className="w-full sm:w-auto text-center">
                     <MagicButton className="w-full sm:w-auto">
                       Show Temporal Data
                     </MagicButton>
                   </ModalTrigger>
 
-                  {/* 📊 Modal Body */}
                   <ModalBody>
                     <ModalContent>
                       <h3 className="text-lg font-bold text-white text-center mb-2">
@@ -303,18 +372,27 @@ export default function MapPage() {
             </div>
           </div>
         </div>
+
         {/* 🧠 AI Response Card */}
         {aiResponse && (
-          <div className="w-full max-w-3xl rounded-2xl mt-6">
+          <div className="w-full max-w-3xl rounded-2xl mt-8 relative overflow-hidden shadow-xl transition-all duration-300">
             <ShineBorder
               shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]}
               className="rounded-2xl"
             />
-            <div className="relative z-10 w-full bg-zinc-800/90 rounded-2xl p-6 shadow-lg text-neutral-100 whitespace-pre-wrap text-sm">
-              <h4 className="text-lg font-semibold mb-2 text-white">
-                GeoGini Response
+
+            <div className="relative z-10 w-full bg-zinc-900/80 backdrop-blur-lg rounded-2xl p-6 text-neutral-100">
+              <h4 className="text-xl font-semibold mb-4 text-white tracking-wide">
+                GeoGini AI Response
               </h4>
-              <p>{aiResponse}</p>
+
+              <div
+                className="prose prose-sm prose-invert max-w-none leading-relaxed text-[15px] text-zinc-100 
+  [&>h1]:mb-4 [&>h2]:mb-4 [&>h3]:mb-4 [&>h4]:mb-4 
+  [&>h1]:mt-6 [&>h2]:mt-5 [&>h3]:mt-4 [&>h4]:mt-3"
+              >
+                <ReactMarkdown>{formatAIResponse(aiResponse)}</ReactMarkdown>
+              </div>
             </div>
           </div>
         )}
