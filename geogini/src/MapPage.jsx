@@ -43,6 +43,7 @@ export default function MapPage() {
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const fileInputRef = useRef(null);
+  const [askingAI, setAskingAI] = useState(false);
 
   useEffect(() => {
     const handleMessage = (event) => {
@@ -85,9 +86,16 @@ export default function MapPage() {
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-[90%] sm:w-[40rem]">
         <CardSpotlight className="w-full">
           {/* 🧭 Welcome Message */}
-          <p className="text-xl font-bold text-white mb-2">
-            Welcome to GeoGini
-          </p>
+          <div className="text-xl sm:text-2xl font-semibold text-white mb-2">
+            <p>
+              Welcome to{" "}
+              <span className="font-bold text-cyan-400">GeoGini</span>{" "}
+              <span className="italic font-extralight text-neutral-300">
+                by Antariksh Sarmah
+              </span>
+            </p>
+          </div>
+
           <p className="text-sm text-neutral-300">
             GeoGini lets you explore environmental and demographic
             characteristics of any region on the map using satellite data.
@@ -177,16 +185,16 @@ export default function MapPage() {
                         = hot zones, Blue = cooler areas.
                       </li>
                       <li>
-                        <strong>🌧 Rainfall:</strong> Darker blue shades =
-                        heavier rainfall.
+                        <strong>🌧 Rainfall (daily):</strong> Red shades =
+                        Intense rainfall, yellow = heavy, green = moderate .
                       </li>
                       <li>
                         <strong>💧 Water Frequency:</strong> Blue = permanent
-                        water, Pink/White = seasonal or rare.
+                        water, White = seasonal or rare.
                       </li>
                       <li>
-                        <strong>👥 Population Density:</strong> Green = low,
-                        Yellow = medium, Purple = high.
+                        <strong>👥 Population Density:</strong> Brighter= More
+                        Population
                       </li>
                     </ul>
                   </div>
@@ -237,7 +245,7 @@ export default function MapPage() {
               <div className="flex flex-col justify-center items-center h-28 space-y-2">
                 <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-400 border-t-transparent" />
                 <p className="italic text-sm text-neutral-300 animate-pulse">
-                  Hold on... loading region data
+                  Hold on... loading regional data
                 </p>
               </div>
             ) : (
@@ -248,6 +256,17 @@ export default function MapPage() {
                 onChange={(e) => setChatPrompt(e.target.value)}
               />
             )}
+            {metrics && (
+              <div className="mt-2 text-sm text-neutral-400">
+                ✅ Metrics loaded for selected region.
+                <button
+                  onClick={() => setMetrics(null)}
+                  className="ml-3 text-xs text-red-400 hover:text-red-600 underline"
+                >
+                  Clear Metrics
+                </button>
+              </div>
+            )}
 
             <input
               type="file"
@@ -256,9 +275,17 @@ export default function MapPage() {
               onChange={handleFileChange}
               className="hidden"
             />
-            <p className="text-sm text-neutral-400 mt-2">
-              {imageFile ? `📎 Attached: ${imageFile.name}` : ""}
-            </p>
+            {imageFile && (
+              <div className="flex items-center gap-2 mt-2">
+                <p className="text-sm text-neutral-400">📎 {imageFile.name}</p>
+                <button
+                  onClick={() => setImageFile(null)}
+                  className="text-xs text-red-400 hover:text-red-600 underline"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
 
             <div className="w-full flex flex-col sm:flex-row items-center gap-4">
               <RainbowButton
@@ -271,16 +298,35 @@ export default function MapPage() {
               <RainbowButton
                 className="w-full sm:w-auto sm:min-w-[120px] text-center rounded-4xl"
                 onClick={async () => {
+                  setAiResponse(null);
+                  const noImage = !imageFile;
+                  const noPrompt = !chatPrompt.trim();
+                  const noRegion = !metrics;
+
+                  const canAskAI =
+                    imageFile ||
+                    (!imageFile && !noPrompt && !metrics) ||
+                    (!imageFile && !noPrompt && metrics);
+
+                  if (!canAskAI) {
+                    alert(
+                      "⚠️ Please upload an image or write a prompt before asking AI."
+                    );
+                    return;
+                  }
+
+                  if (imageFile && chatPrompt.trim() === "") {
+                    alert("⚠️ Please enter a prompt along with the image.");
+                    return;
+                  }
+
+                  setAskingAI(true); // NEW: Spinner for AI asking only
+
                   const formData = new FormData();
                   formData.append("prompt", chatPrompt);
-
-                  if (imageFile) {
-                    formData.append("image", imageFile);
-                  }
-
-                  if (metrics) {
+                  if (imageFile) formData.append("image", imageFile);
+                  if (metrics)
                     formData.append("metrics", JSON.stringify(metrics));
-                  }
 
                   try {
                     const res = await fetch(
@@ -290,7 +336,6 @@ export default function MapPage() {
                         body: formData,
                       }
                     );
-
                     const data = await res.json();
                     setAiResponse(data.answer);
                   } catch (err) {
@@ -298,10 +343,18 @@ export default function MapPage() {
                     setAiResponse(
                       "⚠️ Something went wrong while contacting the AI server."
                     );
+                  } finally {
+                    setAskingAI(false); // Reset AI spinner
                   }
                 }}
               >
-                Ask AI
+                {askingAI ? (
+                  <div className="flex items-center justify-center w-full h-full">
+                    <span className="text-black">Loading...</span>
+                  </div>
+                ) : (
+                  "Ask AI"
+                )}
               </RainbowButton>
 
               <div className="w-full sm:w-auto sm:min-w-[180px]">
@@ -320,9 +373,11 @@ export default function MapPage() {
                       <p className="text-sm text-neutral-400 text-center mb-6">
                         This data represents the average environmental
                         conditions for the selected region, calculated over the
-                        period <strong>Jan 2022 – Jan 2023</strong>. Each metric
-                        is derived from high-resolution satellite datasets and
-                        aggregated using region-specific means.
+                        period <strong>Jan 2024 – Jan 2025</strong>. The layers
+                        under map show more recent data filtered with a smaller
+                        range. Each metric is derived from high-resolution
+                        satellite datasets and aggregated using region-specific
+                        means.
                       </p>
 
                       <div className="text-sm space-y-2 text-neutral-200">
@@ -334,21 +389,21 @@ export default function MapPage() {
                         <p>
                           <strong>🌿 NDVI:</strong>{" "}
                           <span className="text-pink-500">{metrics?.ndvi}</span>{" "}
-                          — Average vegetation greenness (2022-2023)
+                          — Average vegetation greenness (2024-2025)
                         </p>
                         <p>
                           <strong>🔥 Land Surface Temp (LST):</strong>{" "}
                           <span className="text-pink-500">
                             {metrics?.lst} °C
                           </span>{" "}
-                          — Mean daytime surface temperature (2022-2023)
+                          — Mean daytime surface temperature (2024-2025)
                         </p>
                         <p>
                           <strong>🌧 Rainfall:</strong>{" "}
                           <span className="text-pink-500">
                             {metrics?.rainfall} mm
                           </span>{" "}
-                          — Total annual precipitation (2022-2023)
+                          — Total annual precipitation (2024-2025)
                         </p>
                         <p>
                           <strong>💧 Water Frequency:</strong>{" "}
@@ -362,7 +417,7 @@ export default function MapPage() {
                           <span className="text-pink-500">
                             {metrics?.popDensity}
                           </span>{" "}
-                          — Estimated people per sq.km (2020)
+                          — Mean Estimated people per 100 sq.m (2018-2021)
                         </p>
                       </div>
                     </ModalContent>

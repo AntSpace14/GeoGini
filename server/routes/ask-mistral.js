@@ -35,8 +35,8 @@ Longitude: ${metrics.lon}
 NDVI (Vegetation Index): ${metrics.ndvi}
 Land Surface Temperature (LST): ${metrics.lst} °C
 Rainfall (Annual): ${metrics.rainfall} mm
-Water Frequency: ${metrics.waterFreq} %
-Population Density: ${metrics.popDensity} people/km²
+Water Frequency (temporal distribution of surface water from 1984 to 2021): ${metrics.waterFreq} %
+Population Density: ${metrics.popDensity} people per 100 sq. meter grid
 
 --- User Question ---
 "${prompt}"
