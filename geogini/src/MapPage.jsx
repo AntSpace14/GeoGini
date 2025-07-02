@@ -330,7 +330,7 @@ export default function MapPage() {
 
                   try {
                     const res = await fetch(
-                      "http://localhost:3001/api/ask-mistral",
+                      `${import.meta.env.VITE_API_BASE_URL}/api/ask-mistral`,
                       {
                         method: "POST",
                         body: formData,
