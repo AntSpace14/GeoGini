@@ -70,11 +70,3 @@ Made with 💙 by [Antariksh Sarmah](https://github.com/AntSpace14)
 Earth Engine map hosted at: [GEE App](https://antariksh.users.earthengine.app/view/geogini-gee-latest)  
 AI responses by Hugging Face Mistral API
 
----
-
-## 🏁 Roadmap
-
-- [ ] Dynamic charts for NDVI/LST over months  
-- [ ] Export region reports as PDF  
-- [ ] Layer toggles inside React UI  
-- [ ] Language translation support  
