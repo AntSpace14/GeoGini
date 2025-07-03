@@ -13,6 +13,7 @@ import { RainbowButton } from "@/components/magicui/rainbow-button";
 import { BorderBeam } from "@/components/magicui/border-beam";
 import { ShimmerButton } from "@/components/magicui/shimmer-button";
 import ReactMarkdown from "react-markdown";
+import { AvatarCircles } from "@/components/magicui/avatar-circles";
 
 import {
   Modal,
@@ -44,6 +45,13 @@ export default function MapPage() {
   const [imageFile, setImageFile] = useState(null);
   const fileInputRef = useRef(null);
   const [askingAI, setAskingAI] = useState(false);
+  const avatars = [
+    {
+      imageUrl:
+        "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png", // Replace with your real GitHub user ID
+      profileUrl: "https://github.com/AntSpace14", // Replace with your GitHub URL
+    },
+  ];
 
   useEffect(() => {
     const handleMessage = (event) => {
@@ -84,6 +92,9 @@ export default function MapPage() {
 
       {/* 💡 Instruction Card */}
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-[90%] sm:w-[40rem]">
+        <div className="absolute top-1 right-1 sm:top-2 sm:right-4 z-50 scale-75 sm:scale-80 md:scale-90 lg:scale-95">
+          <AvatarCircles numPeople={0} avatarUrls={avatars} />
+        </div>
         <CardSpotlight className="w-full">
           {/* 🧭 Welcome Message */}
           <div className="text-xl sm:text-2xl font-semibold text-white mb-2">
