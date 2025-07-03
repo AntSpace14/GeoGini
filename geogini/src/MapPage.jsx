@@ -165,8 +165,9 @@ export default function MapPage() {
                       "Layers" menu on the map to visualize metrics directly.
                     </li>
                     <li>
-                      🤖 You can also upload images and ask ai directly, or with
-                      the selection in the map.
+                      🤖 You can also upload images/take screenshots of map
+                      portions and ask ai directly, or with the selection in the
+                      map.
                     </li>
                   </ul>
 

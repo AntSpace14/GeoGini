@@ -16,11 +16,12 @@ export default function Landing() {
     },
   ];
 
-  const flipWords = ["stuck?", "bored?", "frustrated?", "excited?", "curious?"];
+  const flipWords = ["curious?", "stuck?", "bored?", "frustrated?", "excited?"];
 
   const avatars = [
     {
-      imageUrl: "https://github.com/AntSpace14.png", // Replace with your real GitHub user ID
+      imageUrl:
+        "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png", // Replace with your real GitHub user ID
       profileUrl: "https://github.com/AntSpace14", // Replace with your GitHub URL
     },
   ];
@@ -30,7 +31,7 @@ export default function Landing() {
       <div className="min-h-screen flex flex-col items-center justify-center gap-6 text-center text-white px-4">
         {/* Top sentence very close to typewriter */}
         <div className="flex flex-col items-center">
-          <p className="italic text-base sm:text-lg md:text-lg lg:text-xl text-neutral-200 dark:text-neutral-300 -mb-1 sm:-mb-2 md:-mb-3 text-center">
+          <p className="italic text-base sm:text-lg md:text-lg lg:text-2xl text-neutral-200 dark:text-neutral-300 -mb-1 sm:-mb-2 md:-mb-3 text-center">
             Interact with maps and AI both like never before
           </p>
 
@@ -43,8 +44,8 @@ export default function Landing() {
             <div className="italic">
               <FlipWords words={flipWords} />
             </div>
-            <h1 className="text-4xl font-bold tracking-tighter md:text-5xl lg:text-7xl">
-              Learn with <AuroraText>AI</AuroraText>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-bold tracking-tight text-center">
+              Know the 🌍 with <AuroraText>AI</AuroraText>
             </h1>
           </div>
         </div>
@@ -56,7 +57,7 @@ export default function Landing() {
         >
           Get Started
         </InteractiveHoverButton>
-        <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 z-50">
+        <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-50">
           <AvatarCircles numPeople={0} avatarUrls={avatars} />
         </div>
       </div>
