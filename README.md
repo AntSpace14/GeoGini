@@ -1,5 +1,5 @@
 
-# 🌍 GeoGini — Explore the Earth Intelligently
+# 🌍 GeoGini — Explore Earth Intelligently
 
 **GeoGini** is an interactive geospatial intelligence platform powered by Google Earth Engine, satellite data, and AI.  
 Draw regions on the map, extract real metrics like **NDVI**, **Land Surface Temperature**, **Rainfall**, and get **AI-generated insights** based on both data and uploaded images.
